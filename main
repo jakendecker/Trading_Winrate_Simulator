@@ -1,0 +1,63 @@
+# The goal of this file is to run simuations with distrubutions of the given winrates
+from dataclasses import dataclass
+from random import shuffle
+from matplotlib import pyplot as plt
+import statistics as stats
+@dataclass
+class Simulator():
+    sim_count = 100000
+    days_left = 20
+    percent_target = 8 # this is the percentage target for the simulation to hit
+    account_size = 20000
+    trade_multiplier = 10
+    w1 = 17 # this is the number of trades per type
+    w2 = 27
+    l = 26
+    risk = 1.5
+    RR = 2
+    def trades_till(self,percentage,trade_list):
+        """Takes in the percentage to hit and returns the number of trades it took to be at or grater then that percentage"""
+        percentage = percentage / 100 # set it up mathematically
+        balance = self.account_size
+        for i,trade in enumerate(trade_list):
+            if trade == "w1":
+                balance = balance + (balance * ((self.RR*self.risk)/100))
+            elif trade == "w2":
+                balance = balance + (balance * (self.risk / 100))
+            else:
+                balance = balance - (balance * (self.risk / 100))
+            if balance > (self.account_size + (self.account_size * percentage)):
+                break
+        return i + 1
+    def run(self):
+        total = self.w1+self.w2+self.l
+        sim_list = []
+        print("Running simulation!")
+        print("Creating List of trades from percentages")
+        trade_list = ["w1" for i in range(0,self.w1*self.trade_multiplier)]
+        trade_list.extend(["w2" for i in range(0,self.w2*self.trade_multiplier)])
+        trade_list.extend(["l" for i in range(0,self.l*self.trade_multiplier)])
+        print(len(trade_list))
+        print(trade_list)
+        for i in range(0,self.sim_count+1):
+            shuffle(trade_list)
+            sim_list.append(self.trades_till(percentage=self.percent_target,trade_list=trade_list))
+        print("Simulation results: ")
+        print(sim_list)
+        a = round(stats.mean(sim_list),2)
+        med = stats.median(sim_list)
+        mod = stats.mode(sim_list)
+        print(f"Average: {a}")
+        print(f"Median : {med}, Percentage: {round((len([num for num in sim_list if num <= med])/len(sim_list)*100),2)} %")
+        print(f"Mode   : {mod}, Percentage: {round((len([num for num in sim_list if num <= mod])/len(sim_list)*100),2)} %")
+        print(f"Max    : {max(sim_list)}, Percentage: {round((sim_list.count(max(sim_list))/len(sim_list)*100),2)} %")
+        print(f"Min    : {min(sim_list)}, Percentage: {round((sim_list.count(min(sim_list))/len(sim_list)*100),2)} %")
+        days_below = [days for days in sim_list if days <= self.days_left]
+        win_percentage = round((len(days_below) / len(sim_list))*100,2)
+        print(f"% Chance of hitting target: {win_percentage}")
+        plt.plot(sim_list)
+        plt.show()
+if __name__ == "__main__":
+    print("Starting up simulation main routine...")
+    sim = Simulator()
+    sim.run()
